@@ -112,6 +112,12 @@ groups() ->
       ,{soap_11_client, [sequence], [client_11_ok ,client_11_fault]}
       ,{soap_12_client, [sequence], [client_12_ok ,client_12_fault]}
       ]}
+  ,{cowboy_middle_protocol, [sequence],
+      [correct_sms
+      ,sms_fault
+      ,sms_invalid_xml
+      ,sms_wrong_method
+      ]}
   ,{mochi_server, [sequence],
       [correct_sms
       ,sms_fault
@@ -197,6 +203,15 @@ init_per_group(cowboy_server, Config) ->
                 {"^\\+?[0-9]{4,12}$", valid},
                 {"[0-9]{13,}", throw},
                 {http_server, cowboy_version()}]),
+  Config;
+init_per_group(cowboy_middle_protocol, Config) ->
+  {ok, _} = soap:start_server(sendService_test_server, 
+               [{"[a-zA-Z]+", invalid}, 
+                {"^\\+?[0-9]{4,12}$", valid},
+                {"[0-9]{13,}", throw},
+                {http_server, test_cowboy_middle_protocol},
+                {cowboy_version, cowboy_version()}
+               ]),
   Config;
 init_per_group(inets_server, Config) ->
   {ok, _} = soap:start_server(sendService_test_server, 
@@ -300,6 +315,9 @@ end_per_group(inets_server, _Config) ->
 end_per_group(cowboy_server, _Config) ->
   soap:stop_server(sendService_test_server),
   ok;
+end_per_group(cowboy_middle_protocol, _Config) ->
+  soap:stop_server(sendService_test_server),
+  ok;
 end_per_group(tempconvert_local, _Config) ->
   soap:stop_server(tempconvert_server),
   ok;
@@ -327,6 +345,7 @@ end_per_group(_, _Config) ->
 %%--------------------------------------------------------------------      
 all() -> 
   [{group, cowboy_server},
+  {group, cowboy_middle_protocol},
   {group, inets_server},
   {group, tempconvert},
   {group, tempconvert_12},
