@@ -25,14 +25,14 @@
     name :: string(),
     operation :: atom(), %% name of function as used in handler module
     soap_action = [] :: string(),
-    wrapper_ns = [] :: string() | undefined, %% namespace for the wrapper element (in 
+    wrapper_ns = [] :: string() | undefined, %% namespace for the wrapper element (in
                                  %% case of rpc style)
     op_type :: notification | request_response,
     in_type :: [{string(), atom()}]  | atom(), %% the list type is only used
-                                               %% during construction of the 
+                                               %% during construction of the
                                                %% interface
     out_type :: [{string(), atom()}] | undefined | atom(), %% see above
-    fault_types :: [atom()]}).
+    fault_types :: [atom()] | undefined}).
 -type op() :: #op{}.
 
 -record(interface, {
@@ -40,14 +40,14 @@
     module :: module(), %% The module that makes the interface available
     version :: '1.1' | '1.2',
     http_client :: module(),
-    http_server :: module(),
-    server_handler :: module(),
-    client_handler :: module(),
+    http_server :: module() | undefined,
+    server_handler :: module() | undefined,
+    client_handler :: module() | undefined,
     http_options = [] :: [any()],
     target_ns :: string(),
     soap_ns :: string(),
-    style :: string() | undefined, %% "rpc" | "document" 
-    decoders :: [{string(), module}] | undefined, 
+    style :: string() | undefined, %% "rpc" | "document"
+    decoders :: [{string(), module}] | undefined,
     url :: string(),
     port :: string(),
     binding :: string(),
@@ -59,7 +59,7 @@
     tns_prefix :: string() | undefined, %% used for rpc type wsdl if the target ns
                                         %% is also used as the ns of an operation.
     imported = [] :: [{string(), string() | undefined}] %% imported namespaces,
-    %% {URI, Prefix}, to prevent duplicates and to be able to add the 
+    %% {URI, Prefix}, to prevent duplicates and to be able to add the
     %% prefix later on.
 }).
 -type interface() :: #interface{}.

@@ -20,11 +20,11 @@
 
 %%% This is the generic part of the SOAP server implementation. The http server
 %%% calls "handle_message" for each request.
-%%% 
+%%%
 %%% Takes care of the SOAP specific stuff such as decoding and encoding the
 %%% xml, some error handling on the level of the soap protocol, etc.
 %%%
-%%% Invokes the call-back functions in the handler module that implements the 
+%%% Invokes the call-back functions in the handler module that implements the
 %%% functionality of the SOAP service.
 
 -module(soap_server_handler).
@@ -58,7 +58,7 @@
     %% soap_req is passed to the handler module, and may be modified by it.
     soap_req :: soap_req(),
     %% another parser can be used to parse the header and body,
-    %% this has it's own state. 
+    %% this has it's own state.
     p2_state :: any(),
     %% The handler module also has it's own state
     %% Note that this state exists only for the duration of the request.
@@ -68,7 +68,7 @@
 %% used to collect some information in case of an error
 -record(soap_error, {
     type :: soap_error_code(),
-    stacktrace :: any(), 
+    stacktrace :: any(),
     description :: string(),
     soap_req :: soap_req(),
     class :: atom(),
@@ -82,26 +82,26 @@
 %%% Exported functions
 %%% ============================================================================
 
-%% creates the 'soap_req' that will be used during the handling of the request 
+%% creates the 'soap_req' that will be used during the handling of the request
 %% (or triggers a resoponse immediately, in case of an error).
--spec new_req(Handler :: module(), Server :: atom(), 
+-spec new_req(Handler :: module(), Server :: atom(),
                             Options :: any(), Server_req :: any())
     -> server_http_response() | {continue, soap_req()}.
 new_req(Handler, Server, Options, Server_req) ->
     {module, _} = code:ensure_loaded(Handler),
     New_req = soap_req:new(Server, Server_req, Handler),
-    try 
+    try
         {Soap_req, Handler_state} = Handler:init(New_req, Options),
         {continue, soap_req:set_handler_state(Soap_req, Handler_state)}
     catch
-        %% TODO: what if the `undef` is caused by an error in the `init` 
+        %% TODO: what if the `undef` is caused by an error in the `init`
         %% function, rather than by the `init` function not being defined?
         error:undef ->
             {continue, soap_req:set_handler_state(New_req, Options)};
-        Class:Reason ->
+        Class:Reason:Stacktrace ->
             Soap_error = #soap_error{type = server,
                                      class = Class,
-                                     stacktrace = erlang:get_stacktrace(),
+                                     stacktrace = Stacktrace,
                                      reason = Reason,
                                      handler = Handler,
                                      soap_req = New_req,
@@ -111,21 +111,21 @@ new_req(Handler, Server, Options, Server_req) ->
             soap_req:http_response(Error_s_req)
     end.
 
-%% parses the message, invokes the callbacks implemented by the handler 
+%% parses the message, invokes the callbacks implemented by the handler
 %% module, and creates a response message.
--spec handle_message(Message :: binary(), Soap_req :: soap_req()) -> 
+-spec handle_message(Message :: binary(), Soap_req :: soap_req()) ->
     server_http_response().
 handle_message(Message, Soap_req) ->
     Handler = soap_req:handler(Soap_req),
     Handler_state = soap_req:handler_state(Soap_req),
     %% Call the erlsom sax parser with a callback that
     %% takes off and inspects the envelope.
-    %% The callback uses the    decoder that is defined in the 
+    %% The callback uses the    decoder that is defined in the
     %% handler module to parse header(s) and body.
     Header_handler = get_function(Handler, header, 3, fun skip/3),
     Body_handler = get_function(Handler, body, 3, fun handle/3),
-    try 
-        erlsom_sax:parseDocument(Message, 
+    try
+        erlsom_sax:parseDocument(Message,
                                  #p_state{handler = Handler,
                                  handler_state = Handler_state,
                                  header_handler = Header_handler,
@@ -136,21 +136,21 @@ handle_message(Message, Soap_req) ->
         {ok, SoapReq2, _Tail} ->
             soap_req:http_response(SoapReq2)
     catch
-        Class:Reason ->
-            Soap_error = 
+        Class:Reason:Stacktrace ->
+            Soap_error =
                 case {Class, Reason} of
                     {throw, #soap_error{}} ->
                         Reason;
                     {_, _} ->
                         #soap_error{type = client,
                                     class = Class,
-                                    stacktrace = erlang:get_stacktrace(),
+                                    stacktrace = Stacktrace,
                                     reason = Reason,
                                     handler = Handler,
                                     handler_state = Handler_state,
                                     soap_req = Soap_req,
                                     description = "Error parsing XML"}
-                end, 
+                end,
             Exception_resp = make_exception(Handler, Soap_error),
             Error_soap_req = Soap_error#soap_error.soap_req,
             Error_s_req2 = soap_req:set_resp(Exception_resp, Error_soap_req),
@@ -158,9 +158,9 @@ handle_message(Message, Soap_req) ->
     end.
 
 %% This function can be called by the server integration middleware.
-%% It must be called when method and headers are known, but it is not yet 
-%% clear which soap version is used (because that has to come from the body). 
--spec check_http_conformance(soap_req()) 
+%% It must be called when method and headers are known, but it is not yet
+%% clear which soap version is used (because that has to come from the body).
+-spec check_http_conformance(soap_req())
     -> server_http_response() | {continue, soap_req()}.
 check_http_conformance(Soap_req) ->
     Handler = soap_req:handler(Soap_req),
@@ -181,11 +181,11 @@ check_http_conformance(Soap_req) ->
 %%% Internal functions
 %%% ============================================================================
 
-%% called if there is something wrong with the request, from a protocol 
-%% compliance point of view. 
-%% Will call the 'protocol_error' callback in the handler module, if it 
+%% called if there is something wrong with the request, from a protocol
+%% compliance point of view.
+%% Will call the 'protocol_error' callback in the handler module, if it
 %% exists. Otherwise it will respond with a default fault message.
--spec protocol_error(protocol_error(), soap_req()) -> 
+-spec protocol_error(protocol_error(), soap_req()) ->
     {stop, soap_req()} | {continue, soap_req()}.
 protocol_error(Error_type, Soap_req) ->
     Handler = soap_req:handler(Soap_req),
@@ -202,9 +202,9 @@ protocol_error(Error_type, Soap_req) ->
             default_protocol_error_handler(Error_type, Soap_req, Handler_state)
     end.
 
-%% this function is called when method and headers are known, and also 
+%% this function is called when method and headers are known, and also
 %% the soap version is known.
--spec check_soap_conformance(soap_req()) -> 
+-spec check_soap_conformance(soap_req()) ->
     {stop, soap_req()} | {continue, soap_req()}.
 check_soap_conformance(Soap_req) ->
     Handler = soap_req:handler(Soap_req),
@@ -219,38 +219,38 @@ check_soap_conformance(Soap_req) ->
     catch
         error:Reason when Reason == function_clause; Reason == undef ->
             default_conformance_check(Soap_req);
-        Class:Reason ->
-            throw(callback_error(Class, Reason, Soap_req, Handler_state))
+        Class:Reason:Stacktrace ->
+            throw(callback_error(Class, Reason, Stacktrace, Soap_req, Handler_state))
     end.
 
 
-%% Basic profile 1.0: 
+%% Basic profile 1.0:
 %% R1114 An INSTANCE SHOULD use a "405 Method not Allowed" HTTP status code
 %% if the request method was not "POST".
 
-%% SOAP 1.1 spec: 
+%% SOAP 1.1 spec:
 %% HTTP applications MUST use the media type "text/xml" according to RFC
 %% 2376 [3] when including SOAP entity bodies in HTTP messages.
 %%
 %% Basic profile 1.1:
 %% R1115 An INSTANCE SHOULD use a "415 Unsupported Media Type" HTTP status
-%% code if the Content-Type HTTP request header did not have a value 
+%% code if the Content-Type HTTP request header did not have a value
 %% consistent with the value specified for the corresponding binding of the
 %% input message.
 %%
 %% SOAP 1.2 spec:
 %% In the SOAP 1.2 HTTP binding, the Content-type header should be "application/soap+xml"
-%% TODO: there is a problem if the first check fails, but `protocol_error` callback 
+%% TODO: there is a problem if the first check fails, but `protocol_error` callback
 %% overrules it - in that case the second check is never performed.
 %%
-%% But: for soap with attachments (W3C Note "SOAP Messages with Attachments") the 
+%% But: for soap with attachments (W3C Note "SOAP Messages with Attachments") the
 %% Content-Type must be "Multipart/Related", so we also allow that by default.
 %%
 -spec default_conformance_check(soap_req()) ->
     {stop, soap_req()} | {continue, soap_req()}.
 default_conformance_check(Soap_req) ->
-    case check_conformance(soap_req:soap_version(Soap_req), 
-                           soap_req:content_type(Soap_req), 
+    case check_conformance(soap_req:soap_version(Soap_req),
+                           soap_req:content_type(Soap_req),
                            soap_req:method(Soap_req)) of
         true ->
             {continue, Soap_req};
@@ -296,13 +296,13 @@ default_protocol_error_handler(Error, Soap_req, Handler_state) ->
     Code = map_error(Error),
     {stop, soap_req:set_resp({error, Code, Soap_req, Handler_state}, Soap_req)}.
 
-map_error({method_not_allowed, _}) -> 
+map_error({method_not_allowed, _}) ->
     405;
-map_error({unsupported_media_type, _}) -> 
+map_error({unsupported_media_type, _}) ->
     415.
 
 %% returns {ok, SoapReq, Tail} | {error, ErrorCode, SoapReq} where
-%%   SoapReq = 
+%%   SoapReq =
 %%   Tail = The rest of the Body (after the XML message)
 xml_parser_cb_wrapped(Event, #p_state{state = _Parser_state,
                                       handler = Handler,
@@ -316,10 +316,10 @@ xml_parser_cb_wrapped(Event, #p_state{state = _Parser_state,
         %% TODO: differentiate more (perhaps improve erlsom error codes)
         throw:#soap_error{} = Soap_error ->
             throw(Soap_error#soap_error{soap_req = Soap_req, handler_state = Handler_state});
-        Class:Reason ->
+        Class:Reason:Stacktrace ->
             throw(#soap_error{type = client,
                               class = Class,
-                              stacktrace = erlang:get_stacktrace(),
+                              stacktrace = Stacktrace,
                               reason = Reason,
                               handler = Handler,
                               handler_state = Handler_state,
@@ -329,13 +329,13 @@ xml_parser_cb_wrapped(Event, #p_state{state = _Parser_state,
 
 %% Parses the message and calls the callback functions in the handler module.
 %%
-%% This is an erlsom - sax callback function. It is called for every SAX 
+%% This is an erlsom - sax callback function. It is called for every SAX
 %% event. It keeps track of the progress of the parsing in the #p_state{}
 %% record.
 %%
 %% The SOAP envelope is parsed by this function. For the contents (header
 %% blocks and body), the sax events are handed over to another sax callback
-%% function. Which one that is, is specified by the handler module for the 
+%% function. Which one that is, is specified by the handler module for the
 %% service.
 
 %% Getting started
@@ -346,10 +346,10 @@ xml_parser_cb(startDocument, #p_state{state = started} = S) ->
 
 %% Read the <Envelope> tag
 xml_parser_cb({startElement, Namespace, "Envelope", _Prfx, _Attrs},
-              #p_state{state = started, soap_req = Soap_req} = S) 
+              #p_state{state = started, soap_req = Soap_req} = S)
     when Namespace == ?SOAP_NS; Namespace == ?SOAP12_NS ->
     %% determine the SOAP version from the namespace
-    Version = 
+    Version =
         case Namespace of
             ?SOAP_NS -> '1.1';
             ?SOAP12_NS -> '1.2'
@@ -357,12 +357,12 @@ xml_parser_cb({startElement, Namespace, "Envelope", _Prfx, _Attrs},
     Soap_req2 = soap_req:set_soap_version(Soap_req, Version),
     case check_soap_conformance(Soap_req2) of
         {continue, Soap_req3} ->
-            S#p_state{state = envelope, 
+            S#p_state{state = envelope,
                       soap_namespace = Namespace,
                       soap_version = Version,
                       soap_req = Soap_req3};
         {stop, Soap_req4} ->
-            S#p_state{state = done, 
+            S#p_state{state = done,
                       soap_namespace = Namespace,
                       soap_version = Version,
                       soap_req = Soap_req4}
@@ -385,24 +385,24 @@ xml_parser_cb({startElement, Namespace, _LocalName, _Prfx, _Attrs} = Event,
               #p_state{state = header, soap_req = Soap_req,
                        handler = Handler,
                        handler_state = Handler_s} = S) ->
-    {ok, {Header_parser, Start_state}, Soap_req2, Handler_s2} = 
+    {ok, {Header_parser, Start_state}, Soap_req2, Handler_s2} =
         get_header_parser(Handler, Namespace, Soap_req, Handler_s),
     %% insert a 'startDocument' event to get the header parser going
     S1 = parse_event(Header_parser, startDocument, Start_state, "Header"),
     %% and pass it the original event
     S2 = parse_event(Header_parser, Event, S1, "Header"),
-    S#p_state{state = parsing_header, p2_state = S2, soap_req = Soap_req2, 
+    S#p_state{state = parsing_header, p2_state = S2, soap_req = Soap_req2,
               header_parser = Header_parser,
               handler_state = Handler_s2};
 
 %% end of the header
 xml_parser_cb({endElement, NS, "Header", _Prfx},
-              #p_state{state = parsing_header, 
+              #p_state{state = parsing_header,
               soap_namespace = NS} = S) ->
-    S#p_state{state = envelope}; 
+    S#p_state{state = envelope};
 
 %% all events that are part of the header are passed to the header parser.
-xml_parser_cb(Event, #p_state{state = parsing_header, 
+xml_parser_cb(Event, #p_state{state = parsing_header,
                               header_parser = H_parser,
                               header_handler = H_handler,
                               soap_req = Req,
@@ -412,13 +412,13 @@ xml_parser_cb(Event, #p_state{state = parsing_header,
         %% reached the end of this header
         {result, Parsed_header} ->
             %% Call the handler for the header.
-            {ok, Req2, Handler_s2} = 
+            {ok, Req2, Handler_s2} =
                 try_header_fun(
-                    fun () -> 
-                        H_handler(Parsed_header, Req, Handler_s) 
+                    fun () ->
+                        H_handler(Parsed_header, Req, Handler_s)
                     end,
                     Req, Handler_s),
-            S#p_state{state = header, p2_state = undefined, 
+            S#p_state{state = header, p2_state = undefined,
                       soap_req = Req2, handler_state = Handler_s2};
         P2_s2 ->
             S#p_state{p2_state = P2_s2}
@@ -432,19 +432,19 @@ xml_parser_cb({startElement, NS, "Body", _Prfx, _Attrs},
 
 %% first element of the body
 xml_parser_cb({startElement, Namespace, _LocalName, _Prfx, _Attrs} = Event,
-              #p_state{state = body, 
+              #p_state{state = body,
                        soap_req = Soap_req,
                        handler = Handler,
                        handler_state = Handler_s} = S) ->
-    B_parser_selector = 
+    B_parser_selector =
         get_function(Handler, body_parser, 3, fun default_parser/3),
-    {ok, {Body_parser, Start_state}, Soap_req2, Handler_s2} = 
+    {ok, {Body_parser, Start_state}, Soap_req2, Handler_s2} =
         B_parser_selector(Namespace, Soap_req, Handler_s),
     %% insert a 'startDocument' event to get the body parser going
     S1 = Body_parser(startDocument, Start_state),
     %% and pass it the original event.
     S2 = Body_parser(Event, S1),
-    S#p_state{state = parsing_body, p2_state = S2, soap_req = Soap_req2, 
+    S#p_state{state = parsing_body, p2_state = S2, soap_req = Soap_req2,
               body_parser = Body_parser,
               handler_state = Handler_s2};
 
@@ -456,7 +456,7 @@ xml_parser_cb({endElement, NS, "Body", _Prfx},
 
 %% end of the (not-empty) body
 xml_parser_cb({endElement, NS, "Body", _Prfx},
-              #p_state{state = parsing_body, 
+              #p_state{state = parsing_body,
                                soap_namespace = NS,
                                body_handler = Body_handler,
                                body_parser = B_parser,
@@ -464,27 +464,27 @@ xml_parser_cb({endElement, NS, "Body", _Prfx},
                                soap_req = Soap_req,
                                handler_state = Handler_s} = S) ->
     Parsed_body = B_parser(endDocument, P2_s),
-    {Handler_s2, Soap_req2} = 
+    {Handler_s2, Soap_req2} =
         try
             %% call the handler module and get the response
             Handler_resp = Body_handler(Parsed_body, Soap_req, Handler_s),
             %% and encode it.
             encode_soap_resp(Handler_resp)
         catch
-            Class:Reason -> 
-                throw(#soap_error{class = Class, 
-                                  reason = Reason, 
-                                  type = server, 
-                                  stacktrace = erlang:get_stacktrace(),
+            Class:Reason:Stacktrace ->
+                throw(#soap_error{class = Class,
+                                  reason = Reason,
+                                  type = server,
+                                  stacktrace = Stacktrace,
                                   description = "exception in handler module",
                                   soap_req = Soap_req,
                                   handler_state = Handler_s})
         end,
-    S#p_state{state = body_done, p2_state = undefined, 
+    S#p_state{state = body_done, p2_state = undefined,
               handler_state = Handler_s2, soap_req = Soap_req2};
 
 %% all events that are part of the body are passed to the body parser.
-xml_parser_cb(Event, #p_state{state = parsing_body, 
+xml_parser_cb(Event, #p_state{state = parsing_body,
                               body_parser = B_parser,
                               p2_state = P2_s} = S) ->
     S#p_state{p2_state = B_parser(Event, P2_s)};
@@ -504,15 +504,15 @@ try_header_fun(Fun, Soap_req, Handler_s) ->
     catch
         error:function_clause ->
             {ok, Soap_req, Handler_s};
-        Class:Reason ->
-            throw(callback_error(Class, Reason, Soap_req, Handler_s))
+        Class:Reason:Stacktrace ->
+            throw(callback_error(Class, Reason, Stacktrace, Soap_req, Handler_s))
     end.
 
-callback_error(Class, Reason, Soap_req, Handler_s) ->
-    #soap_error{class = Class, 
-                reason = Reason, 
-                type = server, 
-                stacktrace = erlang:get_stacktrace(),
+callback_error(Class, Reason, Stacktrace, Soap_req, Handler_s) ->
+    #soap_error{class = Class,
+                reason = Reason,
+                type = server,
+                stacktrace = Stacktrace,
                 description = "an unexpected error occcurred",
                 soap_req = Soap_req,
                 handler_state = Handler_s}.
@@ -524,7 +524,7 @@ handle(Parsed_body, Soap_req, Handler_s) ->
     Handler = soap_req:handler(Soap_req),
     case lists:keyfind(Record_type, #op.in_type, Operations) of
         false ->
-            {fault, soap_fault:fault(client, "Unknown operation", Soap_req), 
+            {fault, soap_fault:fault(client, "Unknown operation", Soap_req),
              Soap_req, Handler_s};
         #op{operation = Operation} ->
             Handler:Operation(Parsed_body, Soap_req, Handler_s)
@@ -533,29 +533,29 @@ handle(Parsed_body, Soap_req, Handler_s) ->
 get_header_parser(Handler, Namespace, Soap_req, Handler_s) ->
     Default = fun default_header_parser/3,
     Selector = get_function(Handler, header_parser, 3, Default),
-    try 
-        {ok, {_, _}, _, _} = 
+    try
+        {ok, {_, _}, _, _} =
             Selector(Namespace, Soap_req, Handler_s)
     catch
         error:function_clause ->
             Default(Namespace, Soap_req, Handler_s);
-        Class:Reason ->
-            throw(#soap_error{type = server, 
-                              description = "Header parser selection error", 
-                              stacktrace = erlang:get_stacktrace(),
+        Class:Reason:Stacktrace ->
+            throw(#soap_error{type = server,
+                              description = "Header parser selection error",
+                              stacktrace = Stacktrace,
                               class = Class, reason = Reason})
     end.
 
 parse_event(Parser, Event, State, Type) ->
-    try 
+    try
         Parser(Event, State)
     catch
-        Class:Reason ->
-            %% Presumably failing to parse is a client error (incorrect xml) - but it 
+        Class:Reason:Stacktrace ->
+            %% Presumably failing to parse is a client error (incorrect xml) - but it
             %% could also be a server error, of course - we don't really know.
-            throw(#soap_error{type = client, 
-                              description = "Parser error (" ++ Type ++ ")", 
-                              stacktrace = erlang:get_stacktrace(),
+            throw(#soap_error{type = client,
+                              description = "Parser error (" ++ Type ++ ")",
+                              stacktrace = Stacktrace,
                               class = Class, reason = Reason})
     end.
 
@@ -566,7 +566,7 @@ encode_soap_resp({raw, _, _, Soap_req, Handler_s} = Soap_resp) ->
 encode_soap_resp({Response_code, Body, Soap_req, Handler_s}) ->
     encode_soap_resp({Response_code, Body, [], Soap_req, Handler_s});
 encode_soap_resp({Response_code, Body, Headers, Soap_req, Handler_s}) ->
-    Soap_req2 = soap_req:set_resp({Response_code, 
+    Soap_req2 = soap_req:set_resp({Response_code,
                                   encode_part(Body, Soap_req),
                                   [encode_part(H, Soap_req) || H <- Headers],
                                   Soap_req, Handler_s}, Soap_req),
@@ -598,32 +598,32 @@ get_function(Module, Function, Arity, Default) ->
             Default
     end.
 
--spec make_exception(Handler::module(), soap_error()) -> 
+-spec make_exception(Handler::module(), soap_error()) ->
     soap_handler_response().
-make_exception(Handler, #soap_error{class = Class, 
-                                    reason = Reason, 
-                                    type = Type, 
-                                    soap_req = Soap_req, 
+make_exception(Handler, #soap_error{class = Class,
+                                    reason = Reason,
+                                    type = Type,
+                                    soap_req = Soap_req,
                                     handler_state = Handler_state,
                                     stacktrace = Stacktrace,
                                     description = Description} = Error) ->
-    try 
-        Handler:exception(Class, Reason, Stacktrace, Type, 
+    try
+        Handler:exception(Class, Reason, Stacktrace, Type,
                           Description, Soap_req, Handler_state)
     catch
         _:_ ->
             default_exception(Error)
     end.
 
-default_exception(#soap_error{type = Type, 
-                              description = Description, 
-                              soap_req = Soap_req, 
+default_exception(#soap_error{type = Type,
+                              description = Description,
+                              soap_req = Soap_req,
                               handler_state = Handler_state}) ->
-    Code = 
+    Code =
         case Type of
             client -> client;
             server -> server;
             _ -> server
         end,
-    {fault, soap_fault:fault(Code, Description, Soap_req), 
-     Soap_req, Handler_state}. 
+    {fault, soap_fault:fault(Code, Description, Soap_req),
+     Soap_req, Handler_state}.
