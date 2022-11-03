@@ -1,7 +1,7 @@
 FROM erlang:20-alpine
 
-ARG UID
-ARG GID
+ARG UID=1000
+ARG GID=1000
 
 RUN apk add --no-cache make git && \
   addgroup -S -g "$UID" app && \
