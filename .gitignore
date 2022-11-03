@@ -11,4 +11,4 @@ rel/example_project
 .rebar
 *~
 logs
-rebar.lock
+/_build

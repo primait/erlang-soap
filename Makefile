@@ -1,32 +1,32 @@
-.PHONY: all compile clean ct test_deps
+APP := bet365-soap
+
+.PHONY: all compile ct clean docker-build docker
 
 all: compile
 
 compile:
-	@echo "Fetching dependencies..."
-	@rebar get-deps
-	@echo "Compiling..."
-	@rebar compile
+	rebar3 get-deps
+	rebar3 compile
 
-ct: compile test_deps
-	@echo "Running common tests..."
-	-@ct_run -noshell -pa ebin \
-		-pa deps/*/ebin \
-		-pa test/deps/*/ebin \
-		-name test \
-		-logdir ./logs \
-		-env TEST_DIR ./test \
-		-spec ./test/test_specs.spec \
-		-dir test >> ./logs/raw.log 2>&1
-	@grep -h "TEST COMPLETE" logs/raw.log | tail -1
-
-test_deps:
-	@echo "Checking dependencies for test..."
-	@cd test && rebar get-deps && rebar compile && cd ..
+ct:
+	rebar3 ct
 
 clean:
-	@rebar clean
-	@cd test && rebar clean && cd ..
+	rebar3 clean
 
-distclean: clean
-	@rm -rf ./deps/ && rm -rf ./test/deps/
+docker-build:
+	docker build \
+		--tag $(APP) \
+		--build-arg UID=$(shell id -u) \
+		--build-arg GID=$(shell id -g) \
+		$(PWD)
+
+docker: docker-build
+	docker run \
+		--rm \
+		--tty=true \
+		--interactive=true \
+		--name $(APP) \
+		--volume "$(PWD):/home/app/src" \
+		--workdir=/home/app/src \
+		$(APP) sh

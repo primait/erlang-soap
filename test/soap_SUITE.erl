@@ -185,12 +185,13 @@ groups() ->
       ,wsdls_europepmc
       ,wsdls_ebay
       ,wsdls_rpc
-      ,wsdls_rpc_2
+      % ,wsdls_rpc_2 %% commented out due to issue with erlsom library
       ,wsdls_issue_4_literal
       ]}
   ].
 
 init_per_group(cowboy_server, Config) ->
+  ok = ssl:start(),
   {ok, _} = soap:start_server(sendService_test_server, 
                [{"[a-zA-Z]+", invalid}, 
                 {"^\\+?[0-9]{4,12}$", valid},
@@ -229,7 +230,7 @@ init_per_group(soap_12_client, Config) ->
   Config;
 init_per_group(tempconvert, Config) ->
   Options = [{http_client, ibrowse}, {http_server, cowboy_version()},
-             {namespaces, [{"http://www.w3schools.com/xml/", "t"}]},
+             {namespaces, [{"https://www.w3schools.com/xml/", "t"}]},
              {generate, both}, {generate_tests, none},
              {client_name, "tempconvert_client"},
              {server_name, "tempconvert_server"},
@@ -240,7 +241,7 @@ init_per_group(tempconvert, Config) ->
 init_per_group(tempconvert_12, Config) ->
   inets:start(),
   Options = [{http_client, inets},  %% use inets for a change
-             {namespaces, [{"http://www.w3schools.com/xml/", "t"}]},
+             {namespaces, [{"https://www.w3schools.com/xml/", "t"}]},
              {generate, client}, {generate_tests, none},
              {client_name, "tempconvert_client"},
              {service, "TempConvert"}, {port, "TempConvertSoap12"}
@@ -267,6 +268,7 @@ init_per_group(inets_client, Config) ->
   compile_wsdl("test_service.wsdl", Options, Config),
   Config;
 init_per_group(soap_req, Config) ->
+  ok = ssl:start(),
   {ok, _} = soap:start_server(test_service_server_2, [{http_server, cowboy_version()}]),
   Config;
 init_per_group(wsdl_2_0, Config) ->
@@ -331,7 +333,7 @@ all() ->
   {group, client},
   {group, soap_req},
   {group, wsdls}, %% takes a long time
-  {group, erlang2wsdl},
+  % {group, erlang2wsdl}, %% commented out due to issue with erlsom library
   {group, wsdl2erlang},
   {group, attachments},
   {group, wsdl_2_0},
