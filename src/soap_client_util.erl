@@ -101,7 +101,7 @@ call_body(Body, Encoded_headers, Soap_action,
           #interface{model = Model, soap_ns = Namespace} = Interface,
           Attachments) ->
     try
-        erlsom:write(Body, Model)
+        erlsom:write(Body, Model, [{output, chardata}])
     of
         {ok, Encoded_body} ->
             Http_body = 
