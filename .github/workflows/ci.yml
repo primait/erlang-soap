@@ -5,7 +5,7 @@ on: push
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: erlang:20
+    container: erlang:21
     steps:
       - name: Check out code
         uses: actions/checkout@v2

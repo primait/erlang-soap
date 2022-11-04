@@ -57,25 +57,23 @@ handle(Req, Handler, Options) ->
         Soap_req2 = enrich_req(Req, Soap_req),
         case soap_server_handler:check_http_conformance(Soap_req2) of
             {continue, Soap_req3} ->
-                Req_body = Req:recv_body(),
+                Req_body = mochiweb_request:recv_body(Req),
                 Soap_req4 = soap_req:set_http_body(Soap_req3, Req_body),
-                Handler_resp = 
-                    soap_server_handler:handle_message(Req_body, Soap_req4),
+                Handler_resp = soap_server_handler:handle_message(Req_body, Soap_req4),
                 {ok, StatusCode, Headers, Resp_body, _Req2} = Handler_resp,
-                Req:respond({StatusCode, Headers, Resp_body});
+                mochiweb_request:respond({StatusCode, Headers, Resp_body}, Req);
             {ok, StatusCode, Headers, Resp_body, _} ->
-                Req:respond({StatusCode, Headers, Resp_body})
+                mochiweb_request:respond({StatusCode, Headers, Resp_body}, Req)
         end
     catch
-        Class:Reason ->
-            io:format("Class: ~p, Reason: ~p, Stack: ~p~n", 
-                      [Class, Reason, erlang:get_stacktrace()])
+        Class:Reason:Stacktrace ->
+            io:format("Class: ~p, Reason: ~p, Stack: ~p~n",  [Class, Reason, Stacktrace])
     end.
 
 enrich_req(Req, Soap_req) ->
-    Method = Req:get(method),
+    Method = mochiweb_request:get(method, Req),
     Soap_req2 = soap_req:set_method(Soap_req, atom_to_list(Method)),
-    Content_type = Req:get_header_value("content-type"),
+    Content_type = mochiweb_request:get_header_value("content-type", Req),
     Soap_req3 = soap_req:set_content_type(Soap_req2, Content_type),
-    Soap_action = Req:get_header_value("soapaction"),
+    Soap_action = mochiweb_request:get_header_value("soapaction", Req),
     soap_req:set_soap_action(Soap_req3, Soap_action).

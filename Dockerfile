@@ -1,4 +1,4 @@
-FROM erlang:20-alpine
+FROM erlang:21-alpine
 
 ARG UID=1000
 ARG GID=1000
