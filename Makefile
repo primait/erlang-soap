@@ -13,6 +13,7 @@ ct:
 
 clean:
 	rebar3 clean
+	rm -rf _build
 
 docker-build:
 	docker build \
