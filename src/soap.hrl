@@ -27,7 +27,7 @@
     soap_action = [] :: string(),
     wrapper_ns = [] :: string() | undefined, %% namespace for the wrapper element (in
                                  %% case of rpc style)
-    op_type :: notification | request_response,
+    op_type :: notification | request_response | undefined,
     in_type :: [{string(), atom()}]  | atom(), %% the list type is only used
                                                %% during construction of the
                                                %% interface
@@ -37,25 +37,25 @@
 
 -record(interface, {
     service :: string(),
-    module :: module(), %% The module that makes the interface available
-    version :: '1.1' | '1.2',
-    http_client :: module(),
+    module :: module() | undefined, %% The module that makes the interface available
+    version :: '1.1' | '1.2' | undefined,
+    http_client :: module() | undefined,
     http_server :: module() | undefined,
     server_handler :: module() | undefined,
     client_handler :: module() | undefined,
-    http_options = [] :: [any()],
-    target_ns :: string(),
-    soap_ns :: string(),
+    http_options = [] :: [any()] | undefined,
+    target_ns :: string() | undefined,
+    soap_ns :: string() | undefined,
     style :: string() | undefined, %% "rpc" | "document"
     decoders :: [{string(), module}] | undefined,
-    url :: string(),
+    url :: string() | undefined,
     port :: string(),
-    binding :: string(),
-    port_type :: string(),
-    ops = [] :: [op()],
-    model :: erlsom:model(),
+    binding :: string() | undefined,
+    port_type :: string() | undefined,
+    ops = [] :: [op()] | undefined,
+    model :: erlsom:model() | undefined,
     %% the fields below are only used during the creation of the interface
-    prefix_count = 0 :: integer(), %% used to assign unique prefixes
+    prefix_count = 0 :: integer() | undefined, %% used to assign unique prefixes
     tns_prefix :: string() | undefined, %% used for rpc type wsdl if the target ns
                                         %% is also used as the ns of an operation.
     imported = [] :: [{string(), string() | undefined}] %% imported namespaces,

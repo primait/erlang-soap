@@ -70,10 +70,10 @@
     type :: soap_error_code(),
     stacktrace :: any(),
     description :: string(),
-    soap_req :: soap_req(),
+    soap_req :: soap_req() | undefined,
     class :: atom(),
-    handler :: module(),
-    handler_state :: any(),
+    handler :: module() | undefined,
+    handler_state :: any() | undefined,
     reason :: any()}).
 
 -type soap_error() :: #soap_error{}.

@@ -75,14 +75,14 @@
 -record(pf_state, {
     version :: atom(),
     state :: atom(),
-    characters = "" :: string(),
-    code :: fault_code_object(),
-    fault_string :: fault_string(),
-    actor :: fault_actor(),
-    reasons = [] :: [fault_reason()],
-    language :: string(),
-    detail_tag :: {tag(), uri()},
-    details = [] :: [{tag(), uri(), string()}]
+    characters = "" :: string() | undefined,
+    code :: fault_code_object() | undefined,
+    fault_string :: fault_string() | undefined,
+    actor :: fault_actor() | undefined,
+    reasons = [] :: [fault_reason()] | undefined,
+    language :: string() | undefined,
+    detail_tag :: {tag(), uri()} | undefined,
+    details = [] :: [{tag(), uri(), string()}] | undefined
 }).
 
 -record(attribute, {
