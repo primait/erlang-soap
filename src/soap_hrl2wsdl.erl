@@ -30,9 +30,9 @@
 -type option() :: {target_namespace, string()}.
 
 -record(operation, {
-    name :: string(),
-    in :: string(),
-    out :: string()
+    name :: atom(),
+    in :: atom(),
+    out :: atom()
 }).
 
 
