@@ -8,7 +8,20 @@ jobs:
     container: erlang:21
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+
+      - name: Rebar cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/rebar3
+            _build
+          key: ${{ runner.os }}-erlang-${{ env.OTP_VERSION }}-${{ hashFiles('**/*rebar.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-erlang-${{ env.OTP_VERSION }}-
+
+      - name: Dialyzer
+        run: rebar3 dialyzer
 
       - name: Run tests
         run: make ct

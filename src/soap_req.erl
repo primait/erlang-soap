@@ -84,7 +84,7 @@
     server_req :: server_req(),
     handler :: module(),
     handler_state :: any(),
-    http_body :: binary(),
+    http_body :: binary() | undefined,
     server :: atom(),
     req_soap_attachments = [] :: [soap_attachment()],
     mime_headers = [] :: [http_header()],   %% headers of the mime part 

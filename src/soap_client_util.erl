@@ -50,12 +50,12 @@
     version :: '1.1' | '1.2',
     soap_ns :: string(),
     state :: atom(),
-    parser :: fun(),
-    header_parser :: fun(),
-    fault_parser :: fun(),
+    parser :: fun() | undefined,
+    header_parser :: fun() | undefined,
+    fault_parser :: fun() | undefined,
     parser_state :: any(),
     soap_headers = [] :: [string() | tuple()],
-    soap_body :: string() | tuple(),
+    soap_body :: string() | tuple() | undefined,
     is_fault = false :: boolean(),
     namespaces = [] :: [{prefix(), uri()}]
 }).
