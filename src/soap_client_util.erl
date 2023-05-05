@@ -260,7 +260,7 @@ parse_xml(Message, Model, Http_status, Http_headers,
                          #p_state{model = Model, version = Version,
                                   soap_ns = Ns, state = start,
                                   handler = Handler},
-                         fun xml_parser_cb_wrapped/2, []) of
+                         fun xml_parser_cb_wrapped/2, [{output_encoding, utf8}]) of
         {ok, #p_state{is_fault = true,
                       soap_headers = Decoded_headers,
                       soap_body = Decoded_fault,

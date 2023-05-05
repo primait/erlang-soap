@@ -413,7 +413,7 @@ client_11_ok(_Config) ->
   %% Normally one should include the record definition and use
   %% record syntax.
   %% TODO: the P0 prefixes should not be necessary.
-  {ok, 200, _,  _, {'P0:sendMessageResponse', "OK"}, [], _} =
+  {ok, 200, _,  _, {'P0:sendMessageResponse', <<"OK">>}, [], _} =
     sendService_client:'SendMessage'({'P0:sendMessage', "+31234567890", 
                             "Hello there", "Text"}, [], []).
 
@@ -434,7 +434,7 @@ client_11_fault(_Config) ->
 client_12_ok() ->
   [{userdata,[{doc,"use the generated client, receive OK answer"}]}].
 client_12_ok(_Config) ->
-  {ok, 200, Http_headers,  _, {'P0:sendMessageResponse', "OK"}, [], Raw} =
+  {ok, 200, Http_headers,  _, {'P0:sendMessageResponse', <<"OK">>}, [], Raw} =
     sendService_client:'SendMessage'({'P0:sendMessage', "+31234567890", 
                             "Hello there", "Text"}, [], []),
   "application/soap+xml" = proplists:get_value("Content-Type", Http_headers),
@@ -479,17 +479,19 @@ test_client(_Config) ->
 
 
 client_no_error(_Config) ->
-  {ok,200, Http_headers, [],#response_body{response = "ok"}, [], _} = 
+  {ok,200, Http_headers, [],#response_body{response = <<"ok">>}, [], _} = 
     test_service_client:do_test(#request_body{expected_response="ok"}, [], []),
   "text/xml" = proplists:get_value("Content-Type", Http_headers).
 
 client_unicode(_Config) ->
-  {ok,200, _, [],#response_body{response = "بِسْمِ ٱلرَّحْمـَبنِ ٱلرَّحِيمِ"}, [], _} = 
+  Expected = unicode:characters_to_binary("بِسْمِ ٱلرَّحْمـَبنِ ٱلرَّحِيمِ"),
+  {ok,200, _, [],#response_body{response = Expected}, [], _} = 
     test_service_client:do_test(#request_body{expected_response=
                                               "بِسْمِ ٱلرَّحْمـَبنِ ٱلرَّحِيمِ"}, [], []).
 
 client_unicode_binary(_Config) ->
-  {ok,200, _, [],#response_body{response = "بِسْمِ ٱلرَّحْمـَبنِ ٱلرَّحِيمِ"}, [], _} = 
+  Expected = unicode:characters_to_binary("بِسْمِ ٱلرَّحْمـَبنِ ٱلرَّحِيمِ"),
+  {ok,200, _, [],#response_body{response = Expected}, [], _} = 
     test_service_client:do_test(#request_body{
                                    expected_response=
                                        unicode:characters_to_binary("بِسْمِ ٱلرَّحْمـَبنِ ٱلرَّحِيمِ")},
@@ -500,7 +502,8 @@ inets_client_no_error(_Config) ->
   test_inets_client:do_test(#request_body{expected_response="sleep:0"}, [], []).
 
 inets_client_unicode(_Config) ->
-  {ok,200, _, [],#response_body{response = "بِسْمِ ٱلرَّحْمـَبنِ ٱلرَّحِيمِ"}, [], _} = 
+  Expected = unicode:characters_to_binary("بِسْمِ ٱلرَّحْمـَبنِ ٱلرَّحِيمِ"),
+  {ok,200, _, [],#response_body{response = Expected}, [], _} = 
     test_inets_client:do_test(#request_body{expected_response=
                                               "بِسْمِ ٱلرَّحْمـَبنِ ٱلرَّحِيمِ"}, [], []).
 
@@ -578,15 +581,15 @@ client_fault_encoding_header(_Config) ->
     test_service_client:do_test(#request_body{expected_response="fault_encoding_header"}, [], []).
 
 client_encoded_header(_Config) ->
-  {ok,200, _, [#header{header_field = "hello"}], #response_body{response = "ok"}, [], _} =
+  {ok,200, _, [#header{header_field = <<"hello">>}], #response_body{response = <<"ok">>}, [], _} =
     test_service_client:do_test(#request_body{expected_response="encoded_header"}, [], []).
 
 client_two_headers(_Config) ->
-  {ok,200, _, [_Hash,#header{header_field = "hello"}], #response_body{response = "ok"}, [], _} =
+  {ok,200, _, [_Hash,#header{header_field = <<"hello">>}], #response_body{response = <<"ok">>}, [], _} =
     test_service_client:do_test(#request_body{expected_response="two_headers"}, [], []).
 
 client_one_header_one_skipped(_Config) ->
-  {ok,200, _, [#header{header_field = "hello"}], #response_body{response = "ok"}, [], _} =
+  {ok,200, _, [#header{header_field = <<"hello">>}], #response_body{response = <<"ok">>}, [], _} =
     test_service_client:do_test(#request_body{expected_response="one_header_one_skipped"}, [], []).
 
 ibrowse_client_timeout(_Config) ->
@@ -595,7 +598,7 @@ ibrowse_client_timeout(_Config) ->
                             [{http_options, [{timeout, 1000}]}]).
 
 raw(_Config) ->
-  {ok,200, _, [], #response_body{response = "raw"}, [], _} =
+  {ok,200, _, [], #response_body{response = <<"raw">>}, [], _} =
     test_service_client:do_test(#request_body{expected_response="raw"}, [], []).
 
 raw_client(_Config) ->
@@ -603,7 +606,7 @@ raw_client(_Config) ->
               <<"ap/envelope/\"><s:Body><erlsom:request_body xmlns:erl">>,
               <<"som=\"test\"><expected_response>raw</expected_response>">>,
               "</erlsom:request_body></s:Body></s:Envelope>"],
-  {ok,200, _, [], #response_body{response = "raw"}, [], _} =
+  {ok,200, _, [], #response_body{response = <<"raw">>}, [], _} =
     test_service_client:do_test(Message, [], []).
 
 raw_client_error(_Config) ->
@@ -615,7 +618,7 @@ soap_req_no_headers(_Config) ->
     test_service_client:do_test(#request_body{expected_response="ok"}, [], []).
 
 soap_req_w_headers(_Config) ->
-  {ok,200, _, [],{response_body,"authenticated!"}, [], _} =
+  {ok,200, _, [],{response_body,<<"authenticated!">>}, [], _} =
     test_service_client:do_test(#request_body{expected_response="ok"}, 
                                 [], [{http_headers, [{"authorization", "user:pwd"}]}]).
 

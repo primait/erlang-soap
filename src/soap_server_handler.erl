@@ -524,7 +524,7 @@ handle(Parsed_body, Soap_req, Handler_s) ->
     Handler = soap_req:handler(Soap_req),
     case lists:keyfind(Record_type, #op.in_type, Operations) of
         false ->
-            {fault, soap_fault:fault(client, "Unknown operation", Soap_req),
+            {fault, soap_fault:fault(client, <<"Unknown operation">>, Soap_req),
              Soap_req, Handler_s};
         #op{operation = Operation} ->
             Handler:Operation(Parsed_body, Soap_req, Handler_s)
