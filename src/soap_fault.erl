@@ -211,8 +211,6 @@ make_reasons(Fault_strings)
     when is_list(Fault_strings) andalso
          ((length(Fault_strings) == 0) orelse is_tuple(hd(Fault_strings))) ->
     [make_reason(Text) || Text <- Fault_strings];
-make_reasons(Fault_bin) when is_binary(Fault_bin) ->
-    make_reason(unicode:characters_to_list(Fault_bin));
 make_reasons(Fault_string) ->
     make_reason(#fault_reason{text = Fault_string}).
 
