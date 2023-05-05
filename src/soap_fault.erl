@@ -300,7 +300,6 @@ fault_detail(Details, '1.2') ->
 xml_string(String) ->
     soap_req:xml_string(String).
 
-% TODO: String is binary()
 make_code(String, N_spaces) when is_list(String) ->
     case string:tokens(String, ":") of
         [Prefix, Local] ->
