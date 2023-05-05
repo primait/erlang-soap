@@ -52,9 +52,9 @@
 -type fault_code() :: fault_code_atom() | fault_code_object().
 -export_type([fault_code/0]).
 
--type fault_string() :: string() | fault_reason() | [fault_reason()].
+-type fault_string() :: binary() | fault_reason() | [fault_reason()].
 
--type fault_actor() :: string() | undefined.
+-type fault_actor() :: binary() | undefined.
 
 -opaque fault_detail() :: iodata().
 -export_type([fault_detail/0]).
@@ -75,7 +75,7 @@
 -record(pf_state, {
     version :: atom(),
     state :: atom(),
-    characters = "" :: string() | undefined,
+    characters = <<>> :: binary() | undefined,
     code :: fault_code_object() | undefined,
     fault_string :: fault_string() | undefined,
     actor :: fault_actor() | undefined,
@@ -210,7 +210,9 @@ make_reasons(Fault_string)
 make_reasons(Fault_strings) 
     when is_list(Fault_strings) andalso
          ((length(Fault_strings) == 0) orelse is_tuple(hd(Fault_strings))) ->
-    [make_reason(Text) || Text <- Fault_strings]; 
+    [make_reason(Text) || Text <- Fault_strings];
+make_reasons(Fault_bin) when is_binary(Fault_bin) ->
+    make_reason(unicode:characters_to_list(Fault_bin));
 make_reasons(Fault_string) ->
     make_reason(#fault_reason{text = Fault_string}).
 
@@ -300,7 +302,8 @@ fault_detail(Details, '1.2') ->
 xml_string(String) ->
     soap_req:xml_string(String).
 
-make_code(String, N_spaces) ->
+% TODO: String is binary()
+make_code(String, N_spaces) when is_list(String) ->
     case string:tokens(String, ":") of
         [Prefix, Local] ->
             case lists:keyfind(Prefix, 1, N_spaces) of
@@ -314,7 +317,9 @@ make_code(String, N_spaces) ->
         _ ->
             #faultcode{uri = "", 
                        code = String}
-    end.
+    end;
+make_code(Bin, N_spaces) when is_binary(Bin) ->
+    make_code(unicode:characters_to_list(Bin), N_spaces).
 
 %%% ----------------------------------------------------------------------------
 %%% Parsing faults
@@ -337,13 +342,13 @@ parse_fault_1_1({startElement, _, "faultcode", _, _},
 parse_fault_1_1({characters, Characters}, 
                 _Namespaces,
                 #pf_state{characters = String} = S) ->
-    S#pf_state{characters = String ++ Characters};
+    S#pf_state{characters = <<String/binary, Characters/binary>>};
 parse_fault_1_1({endElement, _, "faultcode", _},
                 Namespaces,
                 #pf_state{state = code,
                           characters = String} = S) ->
     S#pf_state{code = make_code(String, Namespaces),
-               characters = "",
+               characters = <<>>,
                state = code_done};
 parse_fault_1_1({startElement, _, "faultstring", _, _}, 
                 _Namespaces,
@@ -354,7 +359,7 @@ parse_fault_1_1({endElement, _, "faultstring", _},
                 #pf_state{state = faultstring,
                           characters = String} = S) ->
     S#pf_state{fault_string = String,
-               characters = "",
+               characters = <<>>,
                state = faultstring_done};
 parse_fault_1_1({startElement, _, "faultactor", _, _}, 
                 _Namespaces,
@@ -367,7 +372,7 @@ parse_fault_1_1({endElement, _, "faultactor", _},
                 #pf_state{state = faultactor,
                           characters = String} = S) ->
     S#pf_state{actor = String,
-               characters = "",
+               characters = <<>>,
                state = actor_done};
 parse_fault_1_1({startElement, _, "detail", _, _}, 
                 _Namespaces,
@@ -389,8 +394,8 @@ parse_fault_1_1({endElement, Namespace, Tag, _},
                           characters = String} = S) ->
     S#pf_state{details = [#faultdetail{tag = Tag, 
                                        uri = Namespace, 
-                                       text = String} | Details],
-               characters = "",
+                                       text = unicode:characters_to_list(String)} | Details],
+               characters = <<>>,
                state = details};
 parse_fault_1_1({endElement, _, "detail", _},
                 _Namespaces,
@@ -431,13 +436,13 @@ parse_fault_1_2({startElement, ?SOAP12_NS, "Value", _, _},
 parse_fault_1_2({characters, Characters}, 
                 _Namespaces,
                 #pf_state{characters = String} = S) ->
-    S#pf_state{characters = String ++ Characters};
+    S#pf_state{characters = <<String/binary, Characters/binary>>};
 parse_fault_1_2({endElement, ?SOAP12_NS, "Value", _},
                 Namespaces,
                 #pf_state{state = code_value,
                           characters = String} = S) ->
     S#pf_state{code = make_code(String, Namespaces),
-               characters = "",
+               characters = <<>>,
                state = value_done};
 parse_fault_1_2({startElement, ?SOAP12_NS, "Subcode", _, _}, 
                 _Namespaces,
@@ -449,7 +454,7 @@ parse_fault_1_2({endElement, ?SOAP12_NS, "Value", _},
                           code = Code,
                           characters = String} = S) ->
     S#pf_state{code = Code#faultcode{subcode = make_code(String, Namespaces)},
-               characters = "",
+               characters = <<>>,
                state = value_done};
 parse_fault_1_2({endElement, _, "Subcode", _},
                 _Namespaces,
@@ -488,9 +493,9 @@ parse_fault_1_2({endElement, ?SOAP12_NS, "Text", _},
                           language = Language,
                           reasons = Reasons,
                           characters = String} = S) ->
-    S#pf_state{reasons = [#faultreason{language = Language,
-                                       text = String} | Reasons],
-               characters = "",
+    S#pf_state{reasons = [#faultreason{language = unicode:characters_to_list(Language),
+                                       text = unicode:characters_to_list(String)} | Reasons],
+               characters = <<>>,
                state = reasons};
 parse_fault_1_2({startElement, ?SOAP12_NS, "Role", _, _}, 
                 _Namespaces,
@@ -503,7 +508,7 @@ parse_fault_1_2({endElement, ?SOAP12_NS, "Role", _},
                 #pf_state{state = role,
                           characters = String} = S) ->
     S#pf_state{actor = String,
-               characters = "",
+               characters = <<>>,
                state = role_done};
 parse_fault_1_2({startElement, ?SOAP12_NS, "Detail", _, _}, 
                 _Namespaces,
@@ -525,8 +530,8 @@ parse_fault_1_2({endElement, Namespace, Tag, _},
                           characters = String} = S) ->
     S#pf_state{details = [#faultdetail{tag = Tag, 
                                        uri = Namespace, 
-                                       text = String} | Details],
-               characters = "",
+                                       text = unicode:characters_to_list(String)} | Details],
+               characters = <<>>,
                state = details};
 parse_fault_1_2({endElement, ?SOAP12_NS, "Detail", _},
                 _Namespaces,
@@ -550,13 +555,16 @@ make_record(#pf_state{version = '1.1', code = Code,
                       actor = Actor, details = Details,
                       fault_string = String}) ->
     #soap_fault_1_1{faultcode = Code,
-                    faultstring = String,
-                    faultactor = Actor,
+                    faultstring = characters_to_list(String),
+                    faultactor = characters_to_list(Actor),
                     detail = Details};
 make_record(#pf_state{version = '1.2', code = Code,
                       actor = Actor, details = Details,
                       reasons = Reasons}) ->
     #soap_fault_1_2{code = Code,
                     reason = Reasons,
-                    role = Actor,
+                    role = characters_to_list(Actor),
                     detail = Details}.
+
+characters_to_list(undefined) -> undefined;
+characters_to_list(Bin) -> unicode:characters_to_list(Bin).
