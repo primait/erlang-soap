@@ -1,0 +1,14 @@
+name: Publish to Hex
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  elixir-ci:
+    uses: ./.github/actions/erlang-publish.yml
+    with:
+      rebar3-version: 3.24.0
+      otp-version: 26.0
+    secrets:
+      HEX_KEY: ${{ secrets.HEX_KEY }}
