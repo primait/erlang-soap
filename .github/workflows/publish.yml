@@ -10,10 +10,20 @@ jobs:
     steps:
       - name: Checkout project source
         uses: actions/checkout@v4
-      - name: "Publish to Hex"
-        uses: ./.github/actions/erlang-publish
+      - name: Install Beam/OTP/Elixir
+        uses: erlef/setup-beam@v1
+        id: setup-erlang
         with:
-          runs-on: ubuntu-latest
-          rebar3-version: 3.24.0
           otp-version: 26.0
-          HEX_KEY: ${{ secrets.HEX_KEY }}
+          rebar3-version: 3.24.0
+      - name: Login to hex.pm
+        run: rebar3 hex organization auth prima --key ${{ secrets.HEX_KEY }}
+        env:
+          HEX_HOME: ./_build/.hex
+      - name: Install dependencies
+        run: rebar3 update; rebar3 deps
+      - name: Publish to Hex.pm
+        run: rebar3 hex publish -r hexpm:prima
+        env:
+          HEX_API_KEY: ${{ secrets.HEX_KEY }}
+          HEX_HOME: ./_build/.hex
