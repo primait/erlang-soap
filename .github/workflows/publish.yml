@@ -17,7 +17,7 @@ jobs:
           otp-version: 26.0
           rebar3-version: 3.24.0
       - name: Login to hex.pm
-        run: rebar3 hex organization auth prima --key ${{ secrets.HEX_KEY }}
+        run: rebar3 hex organization auth hexpm:prima --key ${{ secrets.HEX_KEY }}
         env:
           HEX_HOME: ./_build/.hex
       - name: Install dependencies
