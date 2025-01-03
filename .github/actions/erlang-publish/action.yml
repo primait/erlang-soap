@@ -33,6 +33,9 @@ on:
         type: string
         default: .
         description: "Elixir Mix project directory"
+      GHA_SSH_DEPLOY_KEY:
+        description: "SSH private key for deployment"
+        required: false
       HEX_KEY:
         description: "API Key for hex package publish on hex.pm"
         required: false
@@ -54,7 +57,7 @@ jobs:
         # perform secret check & put boolean result as an output
         shell: bash
         run: |
-          if [ "${{ secrets.GHA_SSH_DEPLOY_KEY }}" != '' ]; then
+          if [ "${{ inputs.GHA_SSH_DEPLOY_KEY }}" != '' ]; then
             echo "gha_ssh_deploy_key_available=true" >> $GITHUB_OUTPUT;
           else
             echo "gha_ssh_deploy_key_available=false" >> $GITHUB_OUTPUT;
@@ -95,12 +98,12 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.GHA_SSH_DEPLOY_KEY }}
       - name: Login to hex.pm
-        run: rebar3 hex organization auth prima --key ${{ secrets.HEX_KEY }}
+        run: rebar3 hex organization auth prima --key ${{ inputs.HEX_KEY }}
       - name: Install dependencies
         run: rebar3 update; rebar3 deps
       - name: Publish to Hex.pm
         run: rebar3 hex publish -r hexpm:${{ inputs.hex-organization }}
         env:
-          HEX_API_KEY: ${{ secrets.HEX_KEY }}
+          HEX_API_KEY: ${{ inputs.HEX_KEY }}
     needs:
       - secrets_check
