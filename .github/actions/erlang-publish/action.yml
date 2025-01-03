@@ -33,10 +33,6 @@ on:
         type: string
         default: .
         description: "Elixir Mix project directory"
-    secrets:
-      GHA_SSH_DEPLOY_KEY:
-        description: "SSH deploy key with read permissions on private deps repos, passed from the caller workflow"
-        required: false
       HEX_KEY:
         description: "API Key for hex package publish on hex.pm"
         required: false
