@@ -8,6 +8,8 @@ jobs:
   erlang-publish:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout project source
+        uses: actions/checkout@v4
       - name: "Publish to Hex"
         uses: ./.github/actions/erlang-publish
         with:
