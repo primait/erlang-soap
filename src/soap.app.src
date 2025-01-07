@@ -1,6 +1,6 @@
 {application,soap,
  [{description,"Support for SOAP"},
-  {vsn,"1.1.0"},
+  {vsn,"1.1.1"},
   {modules,[]},
   {registered, []},
   {env, []},
