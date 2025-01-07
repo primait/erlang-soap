@@ -23,7 +23,7 @@ jobs:
       - name: Install dependencies
         run: rebar3 update; rebar3 deps
       - name: Publish to Hex.pm
-        run: rebar3 hex publish -r hexpm:prima
+        run: rebar3 hex publish -r hexpm:prima --yes
         env:
           HEX_API_KEY: ${{ secrets.HEX_KEY }}
           HEX_HOME: ./_build/.hex
