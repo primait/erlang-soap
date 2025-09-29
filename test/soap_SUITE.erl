@@ -183,7 +183,7 @@ groups() ->
       [erlang2wsdl_store
       ]}
   ,{wsdl2erlang, [],
-      [reiseauskunft
+      [% reiseauskunft %% commented out due to issue with a live SOAP endpoint being broken now
       ]}
   ,{wsdls, [],
       [wsdls_clickatell
